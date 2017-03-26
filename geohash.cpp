@@ -224,7 +224,7 @@ private:
 
 int main() {
 
-    Geohash st;   
+    Geohash st;
 		std::vector<std::string> geohash = st.standardizeParameters(30.595093,104.067425);
     for(int i = 0;i < geohash.size();i++) {
         std::cout << geohash[i].c_str()  << std::endl;
