@@ -13,7 +13,7 @@
 #include <vector>
 #include <string>
 #include <cstdlib>
-
+//#include "sql.hpp"
 
 class Geohash {
 public:
@@ -221,13 +221,28 @@ private:
 private:
     char coding[33];
 };
-
+/*
 int main() {
 
     Geohash st;
-		std::vector<std::string> geohash = st.standardizeParameters(30.595093,104.067425);
-    for(int i = 0;i < geohash.size();i++) {
-        std::cout << geohash[i].c_str()  << std::endl;
-    }
+    std::string dbName = "points";
+		Mysql dd(dbName);
+		std::vector<std::vector<std::string>> data;
+		std::string bu = "select id,lat,lng from point";
+		dd.select(bu,data);
+		char buff1[1024] = "update point set geohash = %s where id = %d";
+		char buff2[1024] = {0};
+		for(int i = 0;i < data.size();i++) {
+		   std::string buff3 = buff1;
+      //std::cout << data[i][0] << std::endl;
+      //std::cout << data[i][1] << std::endl;
+			std::vector<std::string> geohash = st.standardizeParameters(atof(data[i][1].c_str()),atof(data[i][2].c_str()));
+			sprintf(buff2,"update point set geohash = '%s' where id = %s;",geohash[0].c_str(),data[i][0].c_str());
+			std::string hh = buff2;
+			//std::cout << hh << std::endl;
+			bool flag = dd.query(hh);
+			printf("%d\n",flag);
+				//std::cout << geohash[0].c_str()  << std::endl;
+		}
     return 0;
-}
+}*/
