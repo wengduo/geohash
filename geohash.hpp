@@ -13,7 +13,7 @@
 #include <vector>
 #include <string>
 #include <cstdlib>
-//#include "sql.hpp"
+#include "redis.hpp"
 
 class Geohash {
 public:
@@ -33,12 +33,54 @@ public:
         char bflat[128] = {0};
         char bflng[128] = {0};
         binCode(cLat,cLng,ilat,ilng,bflat,bflng);
-				//定义geohash的容器，为vector内包string容器
-        std::vector<std::string> geohash;
-        geohash.push_back(encode(bflat,bflng));
+				//定义geohash的容器，为vector容器内包string容器
+				std::string geohash = encode(bflat,bflng);
+				std::cout << geohash << std::endl;
+        std::vector<std::string> geohashs = getAroundSquares(geohash,bflat,bflng);
+				return geohashs;
+		}
+
+private:
+		std::string getGeohashKey(std::string &geohash) {
+      return geohash;
+		}
+
+		//得到序列化的value值
+		std::string getStringValue(std::vector<std::string> &geohash) {
+			std::string value;
+			for(int i = 1;i < geohash.size();i++) {
+        value += geohash[i].c_str();
+				value += ",";
+			}
+			return value;
+		}
+
+		//得到反序列化的value值
+		std::vector<std::string> getVectorValue(std::string value,std::string &geohash) {
+      char tmp[128] = {0};
+			std::vector<std::string> geohashs;
+      strcpy(tmp,value.c_str());
+			geohashs.push_back(geohash);
+		  char *p = strtok(tmp,",");
+      while(p != NULL) {
+         geohashs.push_back(p);
+				 p = strtok(NULL,",");
+			}
+			return geohashs;
+		}
+
+		std::vector<std::string> getAroundSquares(std::string geohash,char *bflat,char *bflng) {		
+			//此处考虑加入缓存，算周围8个方格太耗时
+			std::string key = getGeohashKey(geohash);
+      std::string value = redis.get(key.c_str());
+			if(value.length() > 0) {
+				std::cout << geohash.c_str() << std::endl;
+			 	return getVectorValue(value,geohash);
+			} else {
 				//得到二进制经纬度的前15位,这个可变，范围为1200米
         char baseLat[128] = {0};      
         char baseLng[128] = {0};
+				std::vector<std::string> geohashs;
         strncpy(baseLat,bflat,15);
         strncpy(baseLng,bflng,15);
 				//得到上下左右4个经纬度的二进制位
@@ -47,18 +89,22 @@ public:
         std::string leftLng = calculate(baseLng,-1);
         std::string rightLng = calculate(baseLng,1);
         //为了解决geohash算法的缺陷，从而得到周围的八个方格
-        geohash.push_back(encode(upLat.c_str(),leftLng.c_str()));
-        geohash.push_back(encode(upLat.c_str(),baseLng));
-        geohash.push_back(encode(upLat.c_str(),rightLng.c_str()));
-        geohash.push_back(encode(baseLat,leftLng.c_str()));
-        geohash.push_back(encode(baseLat,rightLng.c_str()));
-        geohash.push_back(encode(downLat.c_str(),leftLng.c_str()));
-        geohash.push_back(encode(downLat.c_str(),baseLng));
-        geohash.push_back(encode(downLat.c_str(),rightLng.c_str()));
-				return geohash;
+        geohashs.push_back(geohash);
+        geohashs.push_back(encode(upLat.c_str(),leftLng.c_str()));
+        geohashs.push_back(encode(upLat.c_str(),baseLng));
+        geohashs.push_back(encode(upLat.c_str(),rightLng.c_str()));
+        geohashs.push_back(encode(baseLat,leftLng.c_str()));
+        geohashs.push_back(encode(baseLat,rightLng.c_str()));
+        geohashs.push_back(encode(downLat.c_str(),leftLng.c_str()));
+        geohashs.push_back(encode(downLat.c_str(),baseLng));
+        geohashs.push_back(encode(downLat.c_str(),rightLng.c_str()));
+        //得到序列化的value值 
+				std::string value = getStringValue(geohashs);
+				//设置redis的缓存
+				redis.set(key,value);
+        return geohashs;
+			}
     }
-private:
-
 		//二进制进行加1,减1的操作
     std::string calculate(char *corrdinate,int n) {
         int sum = 0;
@@ -117,7 +163,7 @@ private:
     }
     //将经纬度字符串转成geohash字符串
     std::string encode(const char *bflat,const char *bflng) {
-        std::string geohash;
+        char geohash[128] = {0};
         char binary[128] = {0};
         int i = 0;
         int length = strlen(bflat)+strlen(bflng); 
@@ -220,6 +266,7 @@ private:
     }
 private:
     char coding[33];
+		Redis redis;
 };
 /*
 int main() {

@@ -14,7 +14,7 @@
 #include <cstdlib>
 #include <cmath>
 #include <climits>
-#include "sql.hpp"
+#include "mysql.hpp"
 #include "geohash.hpp"
 
 
@@ -42,25 +42,22 @@ class Point {
 
 			double stepOne = pow(sin(calcLat/2),2) + cos(toLat)*cos(fromLat)*pow(sin(calcLng/2),2);
 			double stepTwo = 2*asin(min(1.0,sqrt(stepOne)));
+		
 			return (int)round(earthRadius*stepTwo);
 		}
-	public:
-		Point() {
-		}
-
 		//算出四个最近的站点
 		std::vector<std::vector<std::string>> popFourRecentPoint(double lat,double lng,std::vector<std::vector<std::string>> &points) {
 			std::vector<std::vector<std::string>> data; 
 			int n;
 			int min;
-			int tmp;
+			int toPointDistance;
 			for(int i = 0;i < pointNum;i++) {
 				min = INT_MAX;
 				n = INT_MAX;
 				for(int j = 0;j < points.size();j++) {
-					int tmp = getDistance(lat,lng,atof(points[j][2].c_str()),atof(points[j][3].c_str()));
-					if(min > tmp) {
-						min = tmp;
+					toPointDistance = getDistance(lat,lng,atof(points[j][2].c_str()),atof(points[j][3].c_str()));
+					if(min > toPointDistance) {
+						min = toPointDistance;
 						n = j;
 					}
 				}
@@ -71,6 +68,9 @@ class Point {
 			}
 
 			return data;
+		}
+	public:
+		Point() {
 		}
 
 		//得到推荐的站点
